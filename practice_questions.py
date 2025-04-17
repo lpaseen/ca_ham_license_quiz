@@ -186,8 +186,8 @@ def save_quiz(quiz):
     #     "skipped": 1
     # }
 
-    print ("**************** saving quiz")
-    print (f" Len quiz = {len(quiz)}")
+    # print ("**************** saving quiz")
+    # print (f" Len quiz = {len(quiz)}")
 
     if not quiz:
         return
@@ -296,14 +296,14 @@ def show_pct_last(prev_quiz):
     TOT=0
     CORRECT=0
     WRONG=0
-    QCNT=0
+    QCNT=10
     category_pct={}
     for cat in category:
         category_pct[cat]={"description":category[cat]['description']}
     for test_time in sorted(prev_quiz.keys(), reverse = True):
-        print(f" test_time = {test_time}")
+        #print(f" test_time = {test_time}")
         quiz=prev_quiz[test_time]['questions']
-        print(f"   quiz no {QCNT} = {quiz}")
+        #print(f"   quiz no {QCNT} = {quiz}")
         for q_id in quiz:
             cat=q_id[:5]
             if "ans" not in category_pct[cat]:
@@ -311,11 +311,13 @@ def show_pct_last(prev_quiz):
             for ans in quiz[q_id]:
                 cnt=category_pct[cat]['ans'][ans]
                 category_pct[cat]['ans'].update({ans:cnt+quiz[q_id][ans]})
-        QCNT+=1
-        if QCNT>10:
+        QCNT-=1
+        if QCNT==0:
             break
 
-    print(f"****************************************************************\n{json.dumps(category_pct,indent=2)}\n****************")
+    # print(f"****************************************************************\n{json.dumps(category_pct,indent=2)}\n****************")
+    print()
+    print(f"stats from the last {QCN} times")
     for cat in category_pct:
         answers=category_pct[cat]['ans']
         tot=0
