@@ -34,8 +34,10 @@ PREV_ANSWERS="amat_basic_quest_answers.csv"
 PREV_ANSWERS_JSON="amat_basic_quest_answers.json"
 QUIZ_RECORD="amat_basic_quest_quiz.json"
 
-VERSION=f"{sys.argv[0]} version 0.0.0"
+VERSION=f"{sys.argv[0]} version 0.1.0"
 USAGE = f"Usage: python {sys.argv[0]} [--help] | [--category ?]"
+
+TEST=False
 
 category={}
 category['B-001']={"description":"Regulations and Policies"}
@@ -52,7 +54,8 @@ def print_cat():
         print(f"{cnt+1} => {cat} - {category[cat]['description']}")
     
 def get_opt():
-    opts, args = getopt.getopt(sys.argv[1:], 'hqVc:', ['help','question','version','category='])
+    global TEST
+    opts, args = getopt.getopt(sys.argv[1:], 'hqVtc:', ['help','question','version','test','category='])
     #print(f"opts={opts},   args={args}")
     catid=""
     for o,a in opts:
@@ -70,6 +73,9 @@ def get_opt():
                 raise SystemExit(USAGE)
             else:
                 catid=list(category.keys())[catno-1]
+        elif o in ("-t","--test"):
+            TEST=True
+            catno=0
         elif o in ("-v","--version"):
                 print(VERSION)
         #print(f"o={o},  a={a}")
@@ -207,6 +213,8 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
     CORRECT=0
     WRONG=0
     NOW=datetime.now().strftime("%F %T")
+    global TEST
+
     prev_quiz[NOW]={"questions":{}}
     # 'question_id', 'question_english', 'correct_answer_english', 'incorrect_answer_1_english', 'incorrect_answer_2_english', 'incorrect_answer_3_english'
     print(f"show some questions out of a pool of {len(all_questions)} questions")
@@ -229,9 +237,10 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
             elif WRONG>0:
                 PCT=f"{100-WRONG/TOT*100:3.2f}%"
         TOT+=1
-        print(f"Question {TOT} ({CORRECT}/{WRONG} {PCT}) - {q_id}   ({category[q_id[:5]]['description']})")
-        print(f"Question : {all_questions[q_id]['question_english']}")
-
+        if TOT > 100:
+            ans="q"
+        else:
+            ans=""
         # print(f"A1: {all_questions[q_id]['incorrect_answer_1_english']}")
         # print(f"A2: {all_questions[q_id]['incorrect_answer_2_english']}")
         # print(f"A3: {all_questions[q_id]['incorrect_answer_3_english']}")
@@ -241,11 +250,29 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
         a.append(all_questions[q_id]['incorrect_answer_2_english'])
         a.append(all_questions[q_id]['incorrect_answer_3_english'])
         random.shuffle(a)
+        OPTIONS=""
         for cnt,i in enumerate(a,1):
-            print(f"{cnt}: {i}")
+            OPTIONS+=f"{cnt}: {i}\n"
 
-        ans=input(f" <cr> to continue: ")
-        if ans == "q":
+        while ans not in ('1','2','3','4','q','s','t','?'):
+            if TEST:
+                PROGRESS=""
+            else:
+                PROGRESS=f" ({CORRECT}/{WRONG} {PCT})"
+
+            print(f"Question {TOT}{PROGRESS} - {q_id}   ({category[q_id[:5]]['description']})")
+            print(f"Question : {all_questions[q_id]['question_english']}")
+            print(OPTIONS)
+
+            ans=input(f" <cr> to continue: ")
+                
+            if ans == "t":
+                TEST=not TEST
+            elif ans == "s":
+                print("skipped")
+                break
+
+        if ans=="q":
             TOT-=1
             print()
             print(f"Done {TOT} questions")
@@ -274,7 +301,8 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
             ans=0
         if ans >0 and ans <5:
             if a[int(ans)-1]==all_questions[q_id]['correct_answer_english']:
-                print("Correct")
+                if not TEST:
+                    print("Correct")
                 CORRECT+=1
                 prev_answers[q_id]['correct']+=1
                 prev_quiz[NOW]["questions"][q_id]["correct"]+=1
@@ -283,12 +311,15 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
                 WRONG+=1
                 prev_answers[q_id]['wrong']+=1
                 prev_quiz[NOW]["questions"][q_id]["wrong"]+=1
-                print("!!!!!!!!!!!!!!!! INCORRECT !!!!!!!!!!!!!!!!")
+                if not TEST:
+                    print("!!!!!!!!!!!!!!!! INCORRECT !!!!!!!!!!!!!!!!")
         else:
             WRONG+=1
             prev_answers[q_id]['skipped']+=1
             prev_quiz[NOW]["questions"][q_id]["skipped"]+=1
-        print(f"     A: {all_questions[q_id]['correct_answer_english']}")
+
+        if not TEST:
+            print(f"     A: {all_questions[q_id]['correct_answer_english']}")
         #print(json.dumps(prev_answers,indent=2))
         #print(f"{json.dumps(prev_quiz,indent=2)}")
 
@@ -300,6 +331,7 @@ def show_pct_last(prev_quiz):
     category_pct={}
     for cat in category:
         category_pct[cat]={"description":category[cat]['description']}
+    CNT=0
     for test_time in sorted(prev_quiz.keys(), reverse = True):
         #print(f" test_time = {test_time}")
         quiz=prev_quiz[test_time]['questions']
@@ -311,13 +343,13 @@ def show_pct_last(prev_quiz):
             for ans in quiz[q_id]:
                 cnt=category_pct[cat]['ans'][ans]
                 category_pct[cat]['ans'].update({ans:cnt+quiz[q_id][ans]})
-        QCNT-=1
-        if QCNT==0:
+        CNT+=1
+        if CNT==QCNT:
             break
 
     # print(f"****************************************************************\n{json.dumps(category_pct,indent=2)}\n****************")
     print()
-    print(f"stats from the last {QCN} times")
+    print(f"stats from the last {CNT} times")
     for cat in category_pct:
         answers=category_pct[cat]['ans']
         tot=0
