@@ -351,6 +351,8 @@ def show_pct_last(prev_quiz):
     print()
     print(f"stats from the last {CNT} times")
     for cat in category_pct:
+        if 'ans' not in category_pct[cat]:
+            continue
         answers=category_pct[cat]['ans']
         tot=0
         for ans in answers:
@@ -376,6 +378,8 @@ def show_pct(prev_answers):
     #print(f"prev_answers={json.dumps(prev_answers,indent=2)}")
     #print(f"prev_quiz={prev_answers.keys()}")
     category_pct=category
+    if len(prev_answers) == 0:
+        return
     for q_id in prev_answers:
         cat=q_id[:5]
         if "ans" not in category_pct[cat]:
@@ -384,8 +388,11 @@ def show_pct(prev_answers):
             cnt=category_pct[cat]['ans'][ans]
             category_pct[cat]['ans'].update({ans:cnt+prev_answers[q_id][ans]})
         #print(f"{prev_answers[q_id]}")
-    #print(f"prev_answers={json.dumps(category_pct,indent=2)}")
+    #print(f"category_pct={json.dumps(category_pct,indent=2)}")
+    #print(json.dumps(category_pct[cat],indent=2)
     for cat in category_pct:
+        if 'ans' not in category_pct[cat]:
+            continue
         answers=category_pct[cat]['ans']
         tot=0
         for ans in answers:
