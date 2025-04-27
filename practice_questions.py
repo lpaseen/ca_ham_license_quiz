@@ -52,10 +52,27 @@ category['B-008']={"description":"Interference and Suppression"}
 def print_cat():
     for cnt,cat in enumerate(category):
         print(f"{cnt+1} => {cat} - {category[cat]['description']}")
-    
+
+def usage():
+    print("usage: practice_questions.py [-h|--help] [-V|--version] [-t|--test] [-c|--category #]")
+    print(" -t|--test  means it will not show progress or if you got it right or wrong, only how many questions you answerd. When 100 questions are done it shows the result.")
+    print(" -c|--category  focus on one category")
+
 def get_opt():
     global TEST
-    opts, args = getopt.getopt(sys.argv[1:], 'hqVtc:', ['help','question','version','test','category='])
+    #opts, args = getopt.getopt(sys.argv[1:], 'hqVtc:', ['help','question','version','test','category='])
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'hVtc:', ['help','version','test','category='])
+    except getopt.GetoptError as err:
+        if err.opt == "c":
+            print_cat()
+            print(f"\nError: {err.msg}")
+            print("Please pass the number of the category you wish to focus on\n")
+            exit(11)
+
+        print(f"failed to parse options: {err}")
+        exit(10)
+
     #print(f"opts={opts},   args={args}")
     catid=""
     for o,a in opts:
@@ -76,6 +93,9 @@ def get_opt():
         elif o in ("-t","--test"):
             TEST=True
             catno=0
+        elif o in ("-h","--help"):
+            usage()
+            exit(0)
         elif o in ("-v","--version"):
                 print(VERSION)
         #print(f"o={o},  a={a}")
@@ -414,7 +434,7 @@ def show_pct(prev_answers):
         #     exit(8)
 
 def main():
-    print("test_sampler starting")
+    print("HAM radio flash card starting")
     cat=get_opt()
     (category,questions)=get_questions(cat)
     #print(type(questions))
