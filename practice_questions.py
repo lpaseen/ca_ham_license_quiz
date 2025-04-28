@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 #Purpose: Practice python programming and get more motivation to practice HAM questions
 #
+#License: GPL3
+#
 #The test file can be retrieved from https://ised-isde.canada.ca/site/amateur-radio-operator-certificate-services/en/downloads
 #  wget https://apc-cap.ic.gc.ca/datafiles/amat_basic_quest.zip
 #  unzip -x amat_basic_quest.zip
