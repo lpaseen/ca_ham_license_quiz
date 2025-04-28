@@ -34,7 +34,7 @@ PREV_ANSWERS="amat_basic_quest_answers.csv"
 PREV_ANSWERS_JSON="amat_basic_quest_answers.json"
 QUIZ_RECORD="amat_basic_quest_quiz.json"
 
-VERSION=f"{sys.argv[0]} version 0.1.0"
+VERSION=f"{sys.argv[0]} version 0.2.0"
 USAGE = f"Usage: python {sys.argv[0]} [--help] | [--category ?]"
 
 TEST=False
@@ -96,8 +96,9 @@ def get_opt():
         elif o in ("-h","--help"):
             usage()
             exit(0)
-        elif o in ("-v","--version"):
+        elif o in ("-V","--version"):
                 print(VERSION)
+                exit(0)
         #print(f"o={o},  a={a}")
     return catid
 
