@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 #Purpose: Practice python programming and get more motivation to practice HAM questions
 #
+#License: GPL3
+#
 #The test file can be retrieved from https://ised-isde.canada.ca/site/amateur-radio-operator-certificate-services/en/downloads
 #  wget https://apc-cap.ic.gc.ca/datafiles/amat_basic_quest.zip
 #  unzip -x amat_basic_quest.zip
@@ -26,13 +28,13 @@ from datetime import datetime
 # Incorrect French Answer 2
 # Incorrect French Answer 3
 
-INFILE="amat_adv_quest_delim.csv"
-PREV_ANSWERS="amat_adv_quest_answers.csv"
+BASE_NAME="amat_basic_quest"
+#BASE_NAME="focus_quiz"
 
-INFILE="amat_basic_quest_delim.txt"
-PREV_ANSWERS="amat_basic_quest_answers.csv"
-PREV_ANSWERS_JSON="amat_basic_quest_answers.json"
-QUIZ_RECORD="amat_basic_quest_quiz.json"
+INFILE=BASE_NAME+"_delim.txt"
+PREV_ANSWERS_CSV=BASE_NAME+"_answers.csv"
+PREV_ANSWERS=BASE_NAME+"_answers.json"
+QUIZ_RECORD=BASE_NAME+"_quiz.json"
 
 VERSION=f"{sys.argv[0]} version 0.2.0"
 USAGE = f"Usage: python {sys.argv[0]} [--help] | [--category ?]"
@@ -134,6 +136,8 @@ def get_questions(catopt):
     print(f"total number of questions found: {len(all_questions)}")
     #print(all_questions)
     for key in category:
+        if 'questions' not in category[key]:
+            continue
         if len(category[key]['questions']) == 0:
                continue
         print(f"{key} - {len(category[key]['questions']):3d}; {category[key]['description']}: ")
@@ -145,6 +149,15 @@ def get_prev_answers():
     prev_answers={}
     try:
         with open(PREV_ANSWERS, mode='r') as infile:
+            prev_answers=json.load(infile)
+    except FileNotFoundError:
+        pass
+    return prev_answers
+
+def get_prev_answers_csv():
+    prev_answers={}
+    try:
+        with open(PREV_ANSWERS_CSV, mode='r') as infile:
             reader = csv.DictReader(infile,delimiter=",")
             for row in reader:
                 prev_answers[row['q_id']]={
@@ -167,7 +180,7 @@ def get_prev_answers():
     return prev_answers
     #print(f"lenght={size(reader)}")
 
-def save_answers(answers):
+def save_answers_csv(answers):
     # "B-006-003-003": {
     #     "correct": 0,
     #     "wrong": 0,
@@ -175,7 +188,7 @@ def save_answers(answers):
     # }
     if not answers:
         return
-    with open(PREV_ANSWERS, mode='w') as outfile:
+    with open(PREV_ANSWERS_CSV, mode='w') as outfile:
         outfile.write("q_id,correct,wrong,skipped\n")
         for q_id,q_cnt in sorted(answers.items()):
             # print(f"type = {type(q_id)}")
@@ -189,10 +202,15 @@ def save_answers(answers):
                 #print(f"x = \"{x}\" - {q_cnt[x]}")
             outfile.write(answer+"\n")
 
-def save_answers_json(answers):
+def save_answers(answers):
+    # "B-006-003-003": {
+    #     "correct": 0,
+    #     "wrong": 0,
+    #     "skipped": 1
+    # }
     if not answers:
         return
-    with open(PREV_ANSWERS_JSON, mode='w') as outfile:
+    with open(PREV_ANSWERS, mode='w') as outfile:
         outfile.write(json.dumps(answers))
       
 def get_prev_quiz():
@@ -259,9 +277,10 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
                 PCT=f"{100-WRONG/TOT*100:3.2f}%"
         TOT+=1
         if TOT > 100:
-            ans="q"
-        else:
-            ans=""
+            break
+        #     ans="q"
+        # else:
+        ans=""
         # print(f"A1: {all_questions[q_id]['incorrect_answer_1_english']}")
         # print(f"A2: {all_questions[q_id]['incorrect_answer_2_english']}")
         # print(f"A3: {all_questions[q_id]['incorrect_answer_3_english']}")
@@ -292,16 +311,12 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
             elif ans == "s":
                 print("skipped")
                 break
+            if not ans:
+                print('press "q" to quit or "s" to skip')
 
         if ans=="q":
             TOT-=1
-            print()
-            print(f"Done {TOT} questions")
-            print(f" Got {CORRECT} right")
-            print(f" Got {WRONG} wrong")
-            if CORRECT > 0:
-                print(f"That means you got {CORRECT/TOT*100}% right")
-            return prev_answers,prev_quiz,prev_quiz[NOW]
+            break
 
         if q_id not in prev_answers:
             prev_answers[q_id]={
@@ -344,6 +359,15 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
         #print(json.dumps(prev_answers,indent=2))
         #print(f"{json.dumps(prev_quiz,indent=2)}")
 
+    #"q" selected or All questions done
+    print()
+    print(f"Done {TOT} questions")
+    print(f" Got {CORRECT} right")
+    print(f" Got {WRONG} wrong")
+    if CORRECT > 0:
+        print(f"That means you got {CORRECT/TOT*100}% right")
+    return prev_answers,prev_quiz,prev_quiz[NOW]
+
 def show_pct_last(prev_quiz):
     TOT=0
     CORRECT=0
@@ -356,7 +380,7 @@ def show_pct_last(prev_quiz):
     for test_time in sorted(prev_quiz.keys(), reverse = True):
         #print(f" test_time = {test_time}")
         quiz=prev_quiz[test_time]['questions']
-        #print(f"   quiz no {QCNT} = {quiz}")
+        #print(f"   quiz no {CNT} = {json.dumps(quiz,indent=2)}")
         for q_id in quiz:
             cat=q_id[:5]
             if "ans" not in category_pct[cat]:
@@ -368,7 +392,7 @@ def show_pct_last(prev_quiz):
         if CNT==QCNT:
             break
 
-    # print(f"****************************************************************\n{json.dumps(category_pct,indent=2)}\n****************")
+    #print(f"****************************************************************\n{json.dumps(category_pct,indent=2)}\n****************")
     print()
     print(f"stats from the last {CNT} times")
     for cat in category_pct:
@@ -379,11 +403,15 @@ def show_pct_last(prev_quiz):
         for ans in answers:
             tot+=answers[ans]
         #print(f"{category_pct[cat]['description']}")
-        #print(f"{category_pct[cat]['description']} - {tot} of {len(category_pct[cat]['questions'])} questions answered:")
+        #print(f"{category_pct[cat]}")
+        #print(f"{category_pct[cat]['ans']} = tot {tot}")
+        #print(f"{category_pct[cat]['description']} - {tot} of {len(category_pct[cat]['ans'])} questions answered:")
+        #print(f"{category_pct[cat]['description']} - {tot} of {len(answers[ans])} questions answered:")
         line=f"{cat[4:]} - {category_pct[cat]['description']:40}  - a questions been answered {tot:3d} times; "
         tail=""
         for ans in answers:
             pct=answers[ans]/tot*100
+            #print(f"  ans={ans} - pct={pct}")
             if ans=="correct":
                 if pct <70:
                     tail=" <<<<<<<<<<<<<<<<"
@@ -391,7 +419,7 @@ def show_pct_last(prev_quiz):
                     tail=" <<<<"
                 elif pct <90:
                     tail=" <<"
-            line+=f"{ans} : {answers[ans]:3d} - {pct:3.2f}%, "
+            line+=f"{ans} : {answers[ans]:3d} - {pct:5.2f}%, "
         print(line[0:-2],tail)
 
 
@@ -450,7 +478,7 @@ def main():
     show_pct(prev_answers)
     answers,prev_quiz,quiz=flash_sample(questions,prev_answers,prev_quiz,category)
     save_answers(answers)
-    save_answers_json(answers)
+    #save_answers_json(answers)
     save_quiz(prev_quiz)
     #print(f"quiz={json.dumps(quiz,indent=2)}")
     #print(f"prev_quiz={json.dumps(prev_quiz,indent=2)}")
