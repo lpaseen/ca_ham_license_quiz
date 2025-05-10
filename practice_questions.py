@@ -414,9 +414,9 @@ def show_pct_last(prev_quiz):
             #print(f"  ans={ans} - pct={pct}")
             if ans=="correct":
                 if pct <70:
-                    tail=" <<<<<<<<<<<<<<<<"
+                    tail=" <<<<<<<< !!!!!!!!!!!!!!!!"
                 elif pct <80:
-                    tail=" <<<<"
+                    tail=" <<<<<<<<"
                 elif pct <90:
                     tail=" <<"
             line+=f"{ans} : {answers[ans]:3d} - {pct:5.2f}%, "
