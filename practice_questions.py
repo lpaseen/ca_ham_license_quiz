@@ -32,7 +32,6 @@ BASE_NAME="amat_basic_quest"
 #BASE_NAME="focus_quiz"
 
 INFILE=BASE_NAME+"_delim.txt"
-PREV_ANSWERS_CSV=BASE_NAME+"_answers.csv"
 PREV_ANSWERS=BASE_NAME+"_answers.json"
 QUIZ_RECORD=BASE_NAME+"_quiz.json"
 
@@ -153,54 +152,6 @@ def get_prev_answers():
     except FileNotFoundError:
         pass
     return prev_answers
-
-def get_prev_answers_csv():
-    prev_answers={}
-    try:
-        with open(PREV_ANSWERS_CSV, mode='r') as infile:
-            reader = csv.DictReader(infile,delimiter=",")
-            for row in reader:
-                prev_answers[row['q_id']]={
-                    "correct":int(row["correct"]),
-                    "wrong":int(row["wrong"]),
-                    "skipped":int(row["skipped"])
-                    }
-                #for x in row.keys():
-                #    print(f"x = \"{x}\" - {row[x]}")
-                # question={}
-                # for q in row.keys():
-                #     #print(f"q = \"{q}\" - \"{row[q]}\", q_id=\"{q_id}\"")
-                #     question[q]=row[q]
-                # all_questions.append(question)
-    except FileNotFoundError:
-        pass
-    #print(f"lenght={len(prev_answers)}")
-    #print(all_questions)
-    #print(json.dumps(prev_answers,indent=2))
-    return prev_answers
-    #print(f"lenght={size(reader)}")
-
-def save_answers_csv(answers):
-    # "B-006-003-003": {
-    #     "correct": 0,
-    #     "wrong": 0,
-    #     "skipped": 1
-    # }
-    if not answers:
-        return
-    with open(PREV_ANSWERS_CSV, mode='w') as outfile:
-        outfile.write("q_id,correct,wrong,skipped\n")
-        for q_id,q_cnt in sorted(answers.items()):
-            # print(f"type = {type(q_id)}")
-            # print(f"value = {q_id}")
-            # print(f"type = {type(q_cnt)}")
-            # print(f"value = {q_cnt}")
-            # print(q_cnt.keys())
-            answer=q_id
-            for x in ("correct","wrong","skipped"):
-                answer+=","+str(q_cnt[x])
-                #print(f"x = \"{x}\" - {q_cnt[x]}")
-            outfile.write(answer+"\n")
 
 def save_answers(answers):
     # "B-006-003-003": {
