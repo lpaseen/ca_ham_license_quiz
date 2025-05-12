@@ -259,11 +259,20 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
                 
             if ans == "t":
                 TEST=not TEST
+                ans=""
             elif ans == "s":
                 print("skipped")
                 break
-            if not ans:
-                print('press "q" to quit or "s" to skip')
+            elif ans == "q":
+                break
+            elif ans:
+                print('press')
+                print('  "q" to quit')
+                print('  "s" to skip')
+                print('  "t" for test mode (no info on right/wrong)')
+                if ans != "?":
+                    print('  "?" for help')
+                ans=""
 
         if ans=="q":
             TOT-=1
