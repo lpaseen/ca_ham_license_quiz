@@ -263,7 +263,7 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
             elif ans == "s":
                 print("skipped")
                 break
-            elif ans == "q":
+            elif ans in ('1','2','3','4','q','s'):
                 break
             elif ans:
                 print('press')
