@@ -171,7 +171,7 @@ def get_prev_quiz():
             prev_quiz = json.load(infile)
     except FileNotFoundError:
         pass
-    print(f"prev quiz lenght={len(prev_quiz)}")
+    #print(f"prev quiz lenght={len(prev_quiz)}")
     return prev_quiz
     #print(f"lenght={size(reader)}")
 
@@ -207,7 +207,7 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
 
     prev_quiz[NOW]={"questions":{}}
     # 'question_id', 'question_english', 'correct_answer_english', 'incorrect_answer_1_english', 'incorrect_answer_2_english', 'incorrect_answer_3_english'
-    print(f"show some questions out of a pool of {len(all_questions)} questions")
+    print(f"\nShowing some questions out of a pool of {len(all_questions)} questions")
     random.seed()
     questions=list(all_questions.keys())
     random.shuffle(questions)
@@ -351,10 +351,12 @@ def show_pct_last(prev_quiz):
         CNT+=1
         if CNT==QCNT:
             break
-
     #print(f"****************************************************************\n{json.dumps(category_pct,indent=2)}\n****************")
     print()
-    print(f"stats from the last {CNT} times")
+    print(f"Stats from the last {CNT} times")
+    show_result(category_pct)
+
+def show_result(category_pct):
     for cat in category_pct:
         if 'ans' not in category_pct[cat]:
             continue
@@ -367,7 +369,7 @@ def show_pct_last(prev_quiz):
         #print(f"{category_pct[cat]['ans']} = tot {tot}")
         #print(f"{category_pct[cat]['description']} - {tot} of {len(category_pct[cat]['ans'])} questions answered:")
         #print(f"{category_pct[cat]['description']} - {tot} of {len(answers[ans])} questions answered:")
-        line=f"{cat[4:]} - {category_pct[cat]['description']:40}  - a questions been answered {tot:3d} times; "
+        line=f"{cat[4:]} - {category_pct[cat]['description']:37}  - a questions been answered {tot:3d} times; "
         tail=""
         for ans in answers:
             pct=answers[ans]/tot*100
@@ -399,28 +401,8 @@ def show_pct(prev_answers):
         #print(f"{prev_answers[q_id]}")
     #print(f"category_pct={json.dumps(category_pct,indent=2)}")
     #print(json.dumps(category_pct[cat],indent=2)
-    for cat in category_pct:
-        if 'ans' not in category_pct[cat]:
-            continue
-        answers=category_pct[cat]['ans']
-        tot=0
-        for ans in answers:
-            tot+=answers[ans]
-
-        #print(f"{category_pct[cat]['description']}")
-        #print(f"{category_pct[cat]['description']} - {tot} of {len(category_pct[cat]['questions'])} questions answered:")
-        print(f"{category_pct[cat]['description']} - a questions answered {tot} times")
-        for ans in answers:
-            print(f"    {ans:8}: {answers[ans]:3d} - {answers[ans]/tot*100:3.2f}%")
-
-        # totq=len(category_pct[cat]['questions'])
-        # if tot != totq:
-        #     print(f"   >>>> cat {cat}, tot={tot}, totq={totq}")
-        #     #print(f"\n{json.dumps(category_pct[cat]['questions'],indent=2)}")
-        #     #print(f"\n{category_pct[cat]['questions']['B-001-025-004']}")
-        #     #print(f"\n{json.dumps(category_pct[cat]['questions']['B-001-025-004'],indent=2)}")
-        #     print(f"\n{json.dumps(category_pct[cat],indent=2)}")
-        #     exit(8)
+    print("\nStats from all rounds:")
+    show_result(category_pct)
 
 def main():
     print("HAM radio flash card starting")
