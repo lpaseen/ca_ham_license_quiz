@@ -11,6 +11,7 @@ import csv
 import json
 import random
 import getopt
+import argparse
 import sys
 from datetime import datetime
 
@@ -63,6 +64,64 @@ def get_opt():
     global TEST
     #opts, args = getopt.getopt(sys.argv[1:], 'hqVtc:', ['help','question','version','test','category='])
     try:
+        opts, args = getopt.getopt(sys.argv[1:], 'hVtc:', ['help','version','test','category='])
+    except getopt.GetoptError as err:
+        if err.opt == "c":
+            print_cat()
+            print(f"\nError: {err.msg}")
+            print("Please pass the number of the category you wish to focus on\n")
+            exit(11)
+
+        print(f"failed to parse options: {err}")
+        exit(10)
+
+    #print(f"opts={opts},   args={args}")
+    catid=""
+    for o,a in opts:
+        if o in ('-c','--category'):
+            if a=="?":
+                print_cat()
+                exit(0)
+            try:
+                catno=int(a)
+            except ValueError:
+                catno=0
+            if catno<1 or catno>8:
+                print(f"Unknown category: {a}")
+                print_cat()
+                raise SystemExit(USAGE)
+            else:
+                catid=list(category.keys())[catno-1]
+        elif o in ("-t","--test"):
+            TEST=True
+            catno=0
+        elif o in ("-h","--help"):
+            usage()
+            exit(0)
+        elif o in ("-V","--version"):
+                print(VERSION)
+                exit(0)
+        #print(f"o={o},  a={a}")
+    return catid
+
+def parse_arg():
+    '''
+    https://docs.python.org/3/library/argparse.html
+    parse command line arguments with argparse (instead of getopt)
+    '''
+    global TEST
+    parser = argparse.ArgumentParser(
+        prog=f"{sys.argv[0]}",
+        description='It will allow practice for the canadian ham radio license test',
+        epilog='my last word',
+        version=VERSION
+    )
+    parser.add_argument('-v', '--verbose',  action='store_true')  # on/off flag
+    parser.add_argument('-h','--help','-?',action='store_true',help='this help')
+    parser.add_argument('-V','--version',action='store_true',help='show program version')
+    parser.add_argument('-t','--test',action='store_true',help='run in test mode, that means no  righ/wrong after each question or progress is shown')
+    parser.add_argument('-c','--category',type=int)
+try:
         opts, args = getopt.getopt(sys.argv[1:], 'hVtc:', ['help','version','test','category='])
     except getopt.GetoptError as err:
         if err.opt == "c":
