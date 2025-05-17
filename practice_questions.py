@@ -10,7 +10,6 @@
 import csv
 import json
 import random
-import getopt
 import argparse
 import sys
 from datetime import datetime
@@ -60,106 +59,44 @@ def usage():
     print(" -t|--test  means it will not show progress or if you got it right or wrong, only how many questions you answerd. When 100 questions are done it shows the result.")
     print(" -c|--category  focus on one category")
 
-def get_opt():
-    global TEST
-    #opts, args = getopt.getopt(sys.argv[1:], 'hqVtc:', ['help','question','version','test','category='])
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hVtc:', ['help','version','test','category='])
-    except getopt.GetoptError as err:
-        if err.opt == "c":
-            print_cat()
-            print(f"\nError: {err.msg}")
-            print("Please pass the number of the category you wish to focus on\n")
-            exit(11)
-
-        print(f"failed to parse options: {err}")
-        exit(10)
-
-    #print(f"opts={opts},   args={args}")
-    catid=""
-    for o,a in opts:
-        if o in ('-c','--category'):
-            if a=="?":
-                print_cat()
-                exit(0)
-            try:
-                catno=int(a)
-            except ValueError:
-                catno=0
-            if catno<1 or catno>8:
-                print(f"Unknown category: {a}")
-                print_cat()
-                raise SystemExit(USAGE)
-            else:
-                catid=list(category.keys())[catno-1]
-        elif o in ("-t","--test"):
-            TEST=True
-            catno=0
-        elif o in ("-h","--help"):
-            usage()
-            exit(0)
-        elif o in ("-V","--version"):
-                print(VERSION)
-                exit(0)
-        #print(f"o={o},  a={a}")
-    return catid
-
-def parse_arg():
+def parse_args():
     '''
     https://docs.python.org/3/library/argparse.html
     parse command line arguments with argparse (instead of getopt)
     '''
     global TEST
+    catid=""
+
     parser = argparse.ArgumentParser(
         prog=f"{sys.argv[0]}",
-        description='It will allow practice for the canadian ham radio license test',
-        epilog='my last word',
-        version=VERSION
+        description='It will allow to practice for the canadian ham radio license test',
+        epilog='my last word'
     )
-    parser.add_argument('-v', '--verbose',  action='store_true')  # on/off flag
-    parser.add_argument('-h','--help','-?',action='store_true',help='this help')
-    parser.add_argument('-V','--version',action='store_true',help='show program version')
+    #parser.add_argument('-v', '--verbose',  action='store_true',help='be more versbose in outputs')  # on/off flag
+    #parser.add_argument('-h','--help','-?',action='store_true',help='this help')
+    parser.add_argument('-V','--version',action='version',help='show program version',version=VERSION)
     parser.add_argument('-t','--test',action='store_true',help='run in test mode, that means no  righ/wrong after each question or progress is shown')
-    parser.add_argument('-c','--category',type=int)
-try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hVtc:', ['help','version','test','category='])
-    except getopt.GetoptError as err:
-        if err.opt == "c":
+    parser.add_argument('-c','--category')
+    args = parser.parse_args()
+    if args.test:
+        TEST=True
+        catno=0
+    if args.category:
+        cat=args.category
+        if cat=="?":
             print_cat()
-            print(f"\nError: {err.msg}")
-            print("Please pass the number of the category you wish to focus on\n")
-            exit(11)
-
-        print(f"failed to parse options: {err}")
-        exit(10)
-
-    #print(f"opts={opts},   args={args}")
-    catid=""
-    for o,a in opts:
-        if o in ('-c','--category'):
-            if a=="?":
-                print_cat()
-                exit(0)
-            try:
-                catno=int(a)
-            except ValueError:
-                catno=0
-            if catno<1 or catno>8:
-                print(f"Unknown category: {a}")
-                print_cat()
-                raise SystemExit(USAGE)
-            else:
-                catid=list(category.keys())[catno-1]
-        elif o in ("-t","--test"):
-            TEST=True
-            catno=0
-        elif o in ("-h","--help"):
-            usage()
             exit(0)
-        elif o in ("-V","--version"):
-                print(VERSION)
-                exit(0)
-        #print(f"o={o},  a={a}")
+        try:
+            catno=int(cat)
+        except ValueError:
+            catno=0
+        if catno<1 or catno>len(category.keys()):
+            print(f"Unknown category: >{cat}<")
+            print_cat()
+            raise SystemExit(USAGE)
+        else:
+            catid=list(category.keys())[catno-1]
+        
     return catid
 
 def get_questions(catopt):
@@ -415,6 +352,7 @@ def show_pct_last(prev_quiz):
     print(f"Stats from the last {CNT} times")
     show_result(category_pct)
 
+################
 def show_result(category_pct):
     for cat in category_pct:
         if 'ans' not in category_pct[cat]:
@@ -440,7 +378,7 @@ def show_result(category_pct):
                     tail=" <<<<<<<<"
                 elif pct <90:
                     tail=" <<"
-            line+=f"{ans} : {answers[ans]:3d} - {pct:5.2f}%, "
+            line+=f"{ans} : {answers[ans]:3d} - {pct:6.2f}%, "
         print(line[0:-2],tail)
 
 
@@ -464,12 +402,14 @@ def show_pct(prev_answers):
     show_result(category_pct)
 
 def main():
+    ''' main function '''
+
     print("HAM radio flash card starting")
-    cat=get_opt()
+    cat=parse_args()
     (category,questions)=get_questions(cat)
     #print(type(questions))
     #print(type(questions[0]))
-    #print(json.dumps(questions[3],indent=2))
+    #print(json.dumps(questions,indent=2))
     #q="B-004-001-001"
     #print(type(questions[q]))
     #print(json.dumps(questions[q],indent=2))
