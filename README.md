@@ -38,6 +38,7 @@ GPL3
 Currently under development, will possible stop once I got my license.
 
 ## Quick demo
+```
 $ python3 practice_questions.py --help
 HAM radio flash card starting
 usage: practice_questions.py [-h] [-V] [-e EXAM] [-t] [-c CATEGORY]
@@ -53,6 +54,8 @@ options:
                         what category of question to focus on, pass "?" for a list
 
 73 de VA3TUE
+
+
 $ python3 practice_questions.py --exam ?
 HAM radio flash card starting
    1:  amateur basic questions until 2025-07-15
@@ -82,3 +85,4 @@ Question : A quarter-wave stub, for use at 15 MHz, is made from a coaxial cable 
 4: 7.5 m (24.6 ft)
 
  <cr> to continue:
+```
