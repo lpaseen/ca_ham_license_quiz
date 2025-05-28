@@ -96,6 +96,11 @@ def print_cat():
         print(f"{cnt+1} => {cat} - {category[cat]['description']}")
 
 ################
+def usage():
+    print("usage: practice_questions.py [-h|--help] [-V|--version] [-t|--test] [-c|--category #]")
+    print(" -t|--test  means it will not show progress or if you got it right or wrong, only how many questions you answerd. When 100 questions are done it shows the result.")
+    print(" -c|--category  focus on one category")
+
 def parse_args():
     '''
     https://docs.python.org/3/library/argparse.html
@@ -109,6 +114,7 @@ def parse_args():
         description='It will allow to practice for the canadian ham radio license test',
         epilog='my last word'
     )
+    #parser.add_argument('-v', '--verbose',  action='store_true',help='be more versbose in outputs')  # on/off flag
     #parser.add_argument('-h','--help','-?',action='store_true',help='this help')
     parser.add_argument('-V','--version',action='version',help='show program version',version=VERSION)
     parser.add_argument('-t','--test',action='store_true',help='run in test mode, that means no  righ/wrong after each question or progress is shown')
