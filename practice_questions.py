@@ -10,9 +10,13 @@
 import csv
 import json
 import random
-import getopt
+import argparse
+import os
 import sys
+import requests
 from datetime import datetime
+from zipfile import ZipFile
+from io import BytesIO
 
 # Each record has the following data, separated by ";"
 
@@ -28,85 +32,140 @@ from datetime import datetime
 # Incorrect French Answer 2
 # Incorrect French Answer 3
 
-BASE_NAME="amat_basic_quest"
-#BASE_NAME="focus_quiz"
+BASE_NAMES={
+    1:{
+        "description":"amateur basic questions until 2025-07-15",
+        "base_name":"amat_basic_quest",
+        "url":"https://apc-cap.ic.gc.ca/datafiles/amat_basic_quest.zip"
+    },
+    2:{
+        "description":"amateur advanced questions",
+        "base_name":"amat_adv_quest",
+        "url":"https://apc-cap.ic.gc.ca/datafiles/amat_adv_quest.zip"
+    },
+    3:{
+        "description":"amateur basic questions after 2025-07-15",
+        "base_name":"amat_basic_quest_2025-07-15",
+        #"url":"https://apc-cap.ic.gc.ca/datafiles/amat_basic_quest_2025-07-15.zip"
+        "url":"https://ised-isde.canada.ca/site/amateur-radio-operator-certificate-services/sites/default/files/documents/amat_basic_quest_2025-07-15.zip",
+        "quiz_name":"amat_basic_quest_delim.txt"
+    }
+}
+
+QUIZNO=1
+BASE_NAME=BASE_NAMES[QUIZNO]['base_name']
+URL=BASE_NAMES[QUIZNO]['url']
 
 INFILE=BASE_NAME+"_delim.txt"
-PREV_ANSWERS_CSV=BASE_NAME+"_answers.csv"
 PREV_ANSWERS=BASE_NAME+"_answers.json"
 QUIZ_RECORD=BASE_NAME+"_quiz.json"
 
-VERSION=f"{sys.argv[0]} version 0.2.0"
+VERSION=f"{sys.argv[0]} version 0.3.0"
 USAGE = f"Usage: python {sys.argv[0]} [--help] | [--category ?]"
 
 TEST=False
 
 category={}
-category['B-001']={"description":"Regulations and Policies"}
-category['B-002']={"description":"Operating and Procedures"}
-category['B-003']={"description":"Station Assembly, Practice and Safety"}
-category['B-004']={"description":"Circuit Components"}
-category['B-005']={"description":"Basic Electronics and Theory"}
-category['B-006']={"description":"Feedlines and Antenna Systems"}
-category['B-007']={"description":"Radio Wave Propagation"}
-category['B-008']={"description":"Interference and Suppression"}
+if "basic" in BASE_NAME:
+    #basic test
+    MAXQ=100
+    category['B-001']={"description":"Regulations and Policies"}
+    category['B-002']={"description":"Operating and Procedures"}
+    category['B-003']={"description":"Station Assembly, Practice and Safety"}
+    category['B-004']={"description":"Circuit Components"}
+    category['B-005']={"description":"Basic Electronics and Theory"}
+    category['B-006']={"description":"Feedlines and Antenna Systems"}
+    category['B-007']={"description":"Radio Wave Propagation"}
+    category['B-008']={"description":"Interference and Suppression"}
+elif "adv" in BASE_NAME:
+    #advanced test
+    MAXQ=50
+    category['A-001']={"description":"Advanced Theory"}
+    category['A-002']={"description":"Advanced Components and Circuits"}
+    category['A-003']={"description":"Measurements"}
+    category['A-004']={"description":"Power Supplies"}
+    category['A-005']={"description":"Transmitters, Modulation and Processing"}
+    category['A-006']={"description":"Receivers"}
+    category['A-007']={"description":"Feedlines - Matching and Antenna Systems"}
 
+
+################
 def print_cat():
+    ''' print the categories '''
     for cnt,cat in enumerate(category):
         print(f"{cnt+1} => {cat} - {category[cat]['description']}")
 
-def usage():
-    print("usage: practice_questions.py [-h|--help] [-V|--version] [-t|--test] [-c|--category #]")
-    print(" -t|--test  means it will not show progress or if you got it right or wrong, only how many questions you answerd. When 100 questions are done it shows the result.")
-    print(" -c|--category  focus on one category")
-
-def get_opt():
+################
+def parse_args():
+    '''
+    https://docs.python.org/3/library/argparse.html
+    parse command line arguments with argparse (instead of getopt)
+    '''
     global TEST
-    #opts, args = getopt.getopt(sys.argv[1:], 'hqVtc:', ['help','question','version','test','category='])
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hVtc:', ['help','version','test','category='])
-    except getopt.GetoptError as err:
-        if err.opt == "c":
-            print_cat()
-            print(f"\nError: {err.msg}")
-            print("Please pass the number of the category you wish to focus on\n")
-            exit(11)
-
-        print(f"failed to parse options: {err}")
-        exit(10)
-
-    #print(f"opts={opts},   args={args}")
     catid=""
-    for o,a in opts:
-        if o in ('-c','--category'):
-            if a=="?":
-                print_cat()
-                exit(0)
-            try:
-                catno=int(a)
-            except ValueError:
-                catno=0
-            if catno<1 or catno>8:
-                print(f"Unknown category: {a}")
-                print_cat()
-                raise SystemExit(USAGE)
-            else:
-                catid=list(category.keys())[catno-1]
-        elif o in ("-t","--test"):
-            TEST=True
-            catno=0
-        elif o in ("-h","--help"):
-            usage()
+
+    parser = argparse.ArgumentParser(
+        prog=f"{sys.argv[0]}",
+        description='It will allow to practice for the canadian ham radio license test',
+        epilog='my last word'
+    )
+    #parser.add_argument('-h','--help','-?',action='store_true',help='this help')
+    parser.add_argument('-V','--version',action='version',help='show program version',version=VERSION)
+    parser.add_argument('-t','--test',action='store_true',help='run in test mode, that means no  righ/wrong after each question or progress is shown')
+    parser.add_argument('-c','--category')
+    args = parser.parse_args()
+    if args.test:
+        TEST=True
+        catno=0
+    if args.category:
+        cat=args.category
+        if cat=="?":
+            print_cat()
             exit(0)
-        elif o in ("-V","--version"):
-                print(VERSION)
-                exit(0)
-        #print(f"o={o},  a={a}")
+        try:
+            catno=int(cat)
+        except ValueError:
+            catno=0
+        if catno<1 or catno>len(category.keys()):
+            print(f"Unknown category: >{cat}<")
+            print_cat()
+            raise SystemExit(USAGE)
+        else:
+            catid=list(category.keys())[catno-1]
+        
     return catid
 
+################
+def download_quiz():
+    print(f"downloading {BASE_NAMES[QUIZNO]['url']}")
+    response=requests.get(BASE_NAMES[QUIZNO]['url'])
+    print (f"received {len(response.content)} bytes")
+    if response.status_code == 200:
+        FILENAME=BASE_NAMES[QUIZNO]['base_name']+"_delim.txt"
+        if "quiz_name" in BASE_NAMES[QUIZNO]:
+            QUIZ_NAME=BASE_NAMES[QUIZNO]['quiz_name']
+        else:
+            QUIZ_NAME=FILENAME
+        # Create a ZipFile object from the response content
+        with ZipFile(BytesIO(response.content)) as zip_file:
+            # Extract the quiz to current directory
+            print(f"Extracting {QUIZ_NAME}")
+            zip_file.extract(QUIZ_NAME)
+            if QUIZ_NAME != FILENAME:
+                os.rename(QUIZ_NAME,FILENAME)
+        print("Files extracted successfully")
+    else:
+        print(f"Failed to download file: {response.status_code}")
+        exit(9)
+
+################
 def get_questions(catopt):
+    ''' read in all questions '''
     # Question categories:
     global category
+
+    if not os.path.isfile(INFILE):
+        download_quiz()
 
     all_questions={}
     with open(INFILE, mode='r') as infile:
@@ -145,7 +204,10 @@ def get_questions(catopt):
     return (category,all_questions)
     #print(f"lenght={size(reader)}")
 
+################
 def get_prev_answers():
+    ''' read all previous answers for this test '''
+    ''' should be replaced with get_prev_quiz() '''
     prev_answers={}
     try:
         with open(PREV_ANSWERS, mode='r') as infile:
@@ -154,55 +216,9 @@ def get_prev_answers():
         pass
     return prev_answers
 
-def get_prev_answers_csv():
-    prev_answers={}
-    try:
-        with open(PREV_ANSWERS_CSV, mode='r') as infile:
-            reader = csv.DictReader(infile,delimiter=",")
-            for row in reader:
-                prev_answers[row['q_id']]={
-                    "correct":int(row["correct"]),
-                    "wrong":int(row["wrong"]),
-                    "skipped":int(row["skipped"])
-                    }
-                #for x in row.keys():
-                #    print(f"x = \"{x}\" - {row[x]}")
-                # question={}
-                # for q in row.keys():
-                #     #print(f"q = \"{q}\" - \"{row[q]}\", q_id=\"{q_id}\"")
-                #     question[q]=row[q]
-                # all_questions.append(question)
-    except FileNotFoundError:
-        pass
-    #print(f"lenght={len(prev_answers)}")
-    #print(all_questions)
-    #print(json.dumps(prev_answers,indent=2))
-    return prev_answers
-    #print(f"lenght={size(reader)}")
-
-def save_answers_csv(answers):
-    # "B-006-003-003": {
-    #     "correct": 0,
-    #     "wrong": 0,
-    #     "skipped": 1
-    # }
-    if not answers:
-        return
-    with open(PREV_ANSWERS_CSV, mode='w') as outfile:
-        outfile.write("q_id,correct,wrong,skipped\n")
-        for q_id,q_cnt in sorted(answers.items()):
-            # print(f"type = {type(q_id)}")
-            # print(f"value = {q_id}")
-            # print(f"type = {type(q_cnt)}")
-            # print(f"value = {q_cnt}")
-            # print(q_cnt.keys())
-            answer=q_id
-            for x in ("correct","wrong","skipped"):
-                answer+=","+str(q_cnt[x])
-                #print(f"x = \"{x}\" - {q_cnt[x]}")
-            outfile.write(answer+"\n")
-
+################
 def save_answers(answers):
+    ''' save the answers given '''
     # "B-006-003-003": {
     #     "correct": 0,
     #     "wrong": 0,
@@ -213,18 +229,23 @@ def save_answers(answers):
     with open(PREV_ANSWERS, mode='w') as outfile:
         outfile.write(json.dumps(answers))
       
+################
 def get_prev_quiz():
+    ''' read in each run done before '''
+    ''' this should be the only way needed '''
     prev_quiz={}
     try:
         with open(QUIZ_RECORD, mode='r') as infile:
             prev_quiz = json.load(infile)
     except FileNotFoundError:
         pass
-    print(f"prev quiz lenght={len(prev_quiz)}")
+    #print(f"prev quiz lenght={len(prev_quiz)}")
     return prev_quiz
     #print(f"lenght={size(reader)}")
 
+################
 def save_quiz(quiz):
+    ''' Save the quiz done '''
     # "B-006-003-003": {
     #     "correct": 0,
     #     "wrong": 0,
@@ -247,7 +268,9 @@ def save_quiz(quiz):
     with open(QUIZ_RECORD, mode='w') as outfile:
         outfile.write(json.dumps(quiz))
 
+################
 def flash_sample(all_questions,prev_answers,prev_quiz,category):
+    ''' show the questions one by one and if not test mode, show right/wrong and progress after each question '''
     TOT=0
     CORRECT=0
     WRONG=0
@@ -256,7 +279,7 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
 
     prev_quiz[NOW]={"questions":{}}
     # 'question_id', 'question_english', 'correct_answer_english', 'incorrect_answer_1_english', 'incorrect_answer_2_english', 'incorrect_answer_3_english'
-    print(f"show some questions out of a pool of {len(all_questions)} questions")
+    print(f"\nShowing some questions out of a pool of {len(all_questions)} questions")
     random.seed()
     questions=list(all_questions.keys())
     random.shuffle(questions)
@@ -276,14 +299,10 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
             elif WRONG>0:
                 PCT=f"{100-WRONG/TOT*100:3.2f}%"
         TOT+=1
-        if TOT > 100:
+        if TOT > MAXQ:
+            TOT-=1
             break
-        #     ans="q"
-        # else:
         ans=""
-        # print(f"A1: {all_questions[q_id]['incorrect_answer_1_english']}")
-        # print(f"A2: {all_questions[q_id]['incorrect_answer_2_english']}")
-        # print(f"A3: {all_questions[q_id]['incorrect_answer_3_english']}")
         a=[]
         a.append(all_questions[q_id]['correct_answer_english'])
         a.append(all_questions[q_id]['incorrect_answer_1_english'])
@@ -308,11 +327,20 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
                 
             if ans == "t":
                 TEST=not TEST
+                ans=""
             elif ans == "s":
                 print("skipped")
                 break
-            if not ans:
-                print('press "q" to quit or "s" to skip')
+            elif ans in ('1','2','3','4','q','s'):
+                break
+            elif ans:
+                print('press')
+                print('  "q" to quit')
+                print('  "s" to skip')
+                print('  "t" for test mode (no info on right/wrong)')
+                if ans != "?":
+                    print('  "?" for help')
+                ans=""
 
         if ans=="q":
             TOT-=1
@@ -365,10 +393,12 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
     print(f" Got {CORRECT} right")
     print(f" Got {WRONG} wrong")
     if CORRECT > 0:
-        print(f"That means you got {CORRECT/TOT*100}% right")
+        print(f"That means you got {CORRECT/TOT*100:6.2f}% right")
     return prev_answers,prev_quiz,prev_quiz[NOW]
 
+################
 def show_pct_last(prev_quiz):
+    ''' show percentage of right/wrong of the last {QCNT} quiz taken - to hint about progress '''
     TOT=0
     CORRECT=0
     WRONG=0
@@ -391,10 +421,14 @@ def show_pct_last(prev_quiz):
         CNT+=1
         if CNT==QCNT:
             break
-
     #print(f"****************************************************************\n{json.dumps(category_pct,indent=2)}\n****************")
     print()
-    print(f"stats from the last {CNT} times")
+    print(f"Stats from the last {CNT} times")
+    show_result(category_pct)
+
+################
+def show_result(category_pct):
+    ''' show all questions answered so far'''
     for cat in category_pct:
         if 'ans' not in category_pct[cat]:
             continue
@@ -407,23 +441,25 @@ def show_pct_last(prev_quiz):
         #print(f"{category_pct[cat]['ans']} = tot {tot}")
         #print(f"{category_pct[cat]['description']} - {tot} of {len(category_pct[cat]['ans'])} questions answered:")
         #print(f"{category_pct[cat]['description']} - {tot} of {len(answers[ans])} questions answered:")
-        line=f"{cat[4:]} - {category_pct[cat]['description']:40}  - a questions been answered {tot:3d} times; "
+        line=f"{cat[4:]} - {category_pct[cat]['description']:37}  - a questions been answered {tot:3d} times; "
         tail=""
         for ans in answers:
             pct=answers[ans]/tot*100
             #print(f"  ans={ans} - pct={pct}")
             if ans=="correct":
                 if pct <70:
-                    tail=" <<<<<<<<<<<<<<<<"
+                    tail=" <<<<<<<< !!!!!!!!!!!!!!!!"
                 elif pct <80:
-                    tail=" <<<<"
+                    tail=" <<<<<<<<"
                 elif pct <90:
                     tail=" <<"
-            line+=f"{ans} : {answers[ans]:3d} - {pct:5.2f}%, "
+            line+=f"{ans} : {answers[ans]:3d} - {pct:6.2f}%, "
         print(line[0:-2],tail)
 
 
+################
 def show_pct(prev_answers):
+    ''' show pct of all questions taken'''
     #print(f"prev_answers={json.dumps(prev_answers,indent=2)}")
     #print(f"prev_quiz={prev_answers.keys()}")
     category_pct=category
@@ -439,36 +475,19 @@ def show_pct(prev_answers):
         #print(f"{prev_answers[q_id]}")
     #print(f"category_pct={json.dumps(category_pct,indent=2)}")
     #print(json.dumps(category_pct[cat],indent=2)
-    for cat in category_pct:
-        if 'ans' not in category_pct[cat]:
-            continue
-        answers=category_pct[cat]['ans']
-        tot=0
-        for ans in answers:
-            tot+=answers[ans]
+    print("\nStats from all rounds:")
+    show_result(category_pct)
 
-        #print(f"{category_pct[cat]['description']}")
-        #print(f"{category_pct[cat]['description']} - {tot} of {len(category_pct[cat]['questions'])} questions answered:")
-        print(f"{category_pct[cat]['description']} - a questions answered {tot} times")
-        for ans in answers:
-            print(f"    {ans:8}: {answers[ans]:3d} - {answers[ans]/tot*100:3.2f}%")
-
-        # totq=len(category_pct[cat]['questions'])
-        # if tot != totq:
-        #     print(f"   >>>> cat {cat}, tot={tot}, totq={totq}")
-        #     #print(f"\n{json.dumps(category_pct[cat]['questions'],indent=2)}")
-        #     #print(f"\n{category_pct[cat]['questions']['B-001-025-004']}")
-        #     #print(f"\n{json.dumps(category_pct[cat]['questions']['B-001-025-004'],indent=2)}")
-        #     print(f"\n{json.dumps(category_pct[cat],indent=2)}")
-        #     exit(8)
-
+################
 def main():
+    ''' main function '''
+
     print("HAM radio flash card starting")
-    cat=get_opt()
+    cat=parse_args()
     (category,questions)=get_questions(cat)
     #print(type(questions))
     #print(type(questions[0]))
-    #print(json.dumps(questions[3],indent=2))
+    #print(json.dumps(questions,indent=2))
     #q="B-004-001-001"
     #print(type(questions[q]))
     #print(json.dumps(questions[q],indent=2))
