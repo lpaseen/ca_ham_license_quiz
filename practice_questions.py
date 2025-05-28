@@ -36,58 +36,65 @@ BASE_NAMES={
     1:{
         "description":"amateur basic questions until 2025-07-15",
         "base_name":"amat_basic_quest",
-        "url":"https://apc-cap.ic.gc.ca/datafiles/amat_basic_quest.zip"
+        "url":"https://apc-cap.ic.gc.ca/datafiles/amat_basic_quest.zip",
+        "pass":100
     },
     2:{
         "description":"amateur advanced questions",
         "base_name":"amat_adv_quest",
-        "url":"https://apc-cap.ic.gc.ca/datafiles/amat_adv_quest.zip"
+        "url":"https://apc-cap.ic.gc.ca/datafiles/amat_adv_quest.zip",
+        "pass":50
     },
     3:{
         "description":"amateur basic questions after 2025-07-15",
         "base_name":"amat_basic_quest_2025-07-15",
         #"url":"https://apc-cap.ic.gc.ca/datafiles/amat_basic_quest_2025-07-15.zip"
         "url":"https://ised-isde.canada.ca/site/amateur-radio-operator-certificate-services/sites/default/files/documents/amat_basic_quest_2025-07-15.zip",
+        "pass":100,
         "quiz_name":"amat_basic_quest_delim.txt"
     }
 }
 
-QUIZNO=1
-BASE_NAME=BASE_NAMES[QUIZNO]['base_name']
-URL=BASE_NAMES[QUIZNO]['url']
-
-INFILE=BASE_NAME+"_delim.txt"
-PREV_ANSWERS=BASE_NAME+"_answers.json"
-QUIZ_RECORD=BASE_NAME+"_quiz.json"
-
-VERSION=f"{sys.argv[0]} version 0.3.0"
+VERSION=f"{sys.argv[0]} version 0.3.1"
 USAGE = f"Usage: python {sys.argv[0]} [--help] | [--category ?]"
-
 TEST=False
 
-category={}
-if "basic" in BASE_NAME:
-    #basic test
-    MAXQ=100
-    category['B-001']={"description":"Regulations and Policies"}
-    category['B-002']={"description":"Operating and Procedures"}
-    category['B-003']={"description":"Station Assembly, Practice and Safety"}
-    category['B-004']={"description":"Circuit Components"}
-    category['B-005']={"description":"Basic Electronics and Theory"}
-    category['B-006']={"description":"Feedlines and Antenna Systems"}
-    category['B-007']={"description":"Radio Wave Propagation"}
-    category['B-008']={"description":"Interference and Suppression"}
-elif "adv" in BASE_NAME:
-    #advanced test
-    MAXQ=50
-    category['A-001']={"description":"Advanced Theory"}
-    category['A-002']={"description":"Advanced Components and Circuits"}
-    category['A-003']={"description":"Measurements"}
-    category['A-004']={"description":"Power Supplies"}
-    category['A-005']={"description":"Transmitters, Modulation and Processing"}
-    category['A-006']={"description":"Receivers"}
-    category['A-007']={"description":"Feedlines - Matching and Antenna Systems"}
+################
+def prep_for_quiz(quizno):
+    global QUIZNO,BASE_NAME,URL,INFILE,PREV_ANSWERS,QUIZ_RECORD,category,MAXQ
 
+    QUIZNO=quizno
+    BASE_NAME=BASE_NAMES[QUIZNO]['base_name']
+    URL=BASE_NAMES[QUIZNO]['url']
+
+    INFILE=BASE_NAME+"_delim.txt"
+    PREV_ANSWERS=BASE_NAME+"_answers.json"
+    QUIZ_RECORD=BASE_NAME+"_quiz.json"
+
+    category={}
+    MAXQ=BASE_NAMES[QUIZNO]['pass']
+    if "basic" in BASE_NAME:
+        #basic test
+        category['B-001']={"description":"Regulations and Policies"}
+        category['B-002']={"description":"Operating and Procedures"}
+        category['B-003']={"description":"Station Assembly, Practice and Safety"}
+        category['B-004']={"description":"Circuit Components"}
+        category['B-005']={"description":"Basic Electronics and Theory"}
+        category['B-006']={"description":"Feedlines and Antenna Systems"}
+        category['B-007']={"description":"Radio Wave Propagation"}
+        category['B-008']={"description":"Interference and Suppression"}
+    elif "adv" in BASE_NAME:
+        #advanced test
+        category['A-001']={"description":"Advanced Theory"}
+        category['A-002']={"description":"Advanced Components and Circuits"}
+        category['A-003']={"description":"Measurements"}
+        category['A-004']={"description":"Power Supplies"}
+        category['A-005']={"description":"Transmitters, Modulation and Processing"}
+        category['A-006']={"description":"Receivers"}
+        category['A-007']={"description":"Feedlines - Matching and Antenna Systems"}
+    else:
+        print(f"ERROR: don't know if {BASE_NAME} is basic or advanced")
+        exit(15)
 
 ################
 def print_cat():
@@ -96,11 +103,12 @@ def print_cat():
         print(f"{cnt+1} => {cat} - {category[cat]['description']}")
 
 ################
-def usage():
-    print("usage: practice_questions.py [-h|--help] [-V|--version] [-t|--test] [-c|--category #]")
-    print(" -t|--test  means it will not show progress or if you got it right or wrong, only how many questions you answerd. When 100 questions are done it shows the result.")
-    print(" -c|--category  focus on one category")
+# def usage():
+#     print("usage: practice_questions.py [-h|--help] [-V|--version] [-t|--test] [-c|--category #]")
+#     print(" -t|--test  means it will not show progress or if you got it right or wrong, only how many questions you answerd. When 100 questions are done it shows the result.")
+#     print(" -c|--category  focus on one category")
 
+################
 def parse_args():
     '''
     https://docs.python.org/3/library/argparse.html
@@ -117,15 +125,31 @@ def parse_args():
     #parser.add_argument('-v', '--verbose',  action='store_true',help='be more versbose in outputs')  # on/off flag
     #parser.add_argument('-h','--help','-?',action='store_true',help='this help')
     parser.add_argument('-V','--version',action='version',help='show program version',version=VERSION)
+    parser.add_argument('-e','--exam',help='Exam to run, "1"/"basic" for basic(default), "2"/"adv" for advanced, "3" for basic after 2025-07-15',default="1")
     parser.add_argument('-t','--test',action='store_true',help='run in test mode, that means no  righ/wrong after each question or progress is shown')
-    parser.add_argument('-c','--category')
+    parser.add_argument('-c','--category',help="what category of question to focus on, pass \"?\" for a list")
     args = parser.parse_args()
     if args.test:
         TEST=True
         catno=0
+    # args.exam has a default of "1"
+    exam=args.exam
+    if args.exam=="basic":
+        exam="1"
+    elif args.exam=="adv" or args.exam=="advanced":
+        exam="2"
+    if exam.isnumeric():
+        exam=int(exam)
+    if exam not in BASE_NAMES:
+        print(f"unknown exam \"{exam}\", only know")
+        for e in BASE_NAMES:
+            print(f"{e}:  {BASE_NAMES[e]['description']}")
+        sys.exit(8)
+
     if args.category:
         cat=args.category
         if cat=="?":
+            prep_for_quiz(exam)
             print_cat()
             exit(0)
         try:
@@ -138,14 +162,16 @@ def parse_args():
             raise SystemExit(USAGE)
         else:
             catid=list(category.keys())[catno-1]
-        
+
+    prep_for_quiz(exam)
+
     return catid
 
 ################
 def download_quiz():
     print(f"downloading {BASE_NAMES[QUIZNO]['url']}")
     response=requests.get(BASE_NAMES[QUIZNO]['url'])
-    print (f"received {len(response.content)} bytes")
+    #print (f"received {len(response.content)} bytes")
     if response.status_code == 200:
         FILENAME=BASE_NAMES[QUIZNO]['base_name']+"_delim.txt"
         if "quiz_name" in BASE_NAMES[QUIZNO]:
@@ -285,7 +311,7 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
 
     prev_quiz[NOW]={"questions":{}}
     # 'question_id', 'question_english', 'correct_answer_english', 'incorrect_answer_1_english', 'incorrect_answer_2_english', 'incorrect_answer_3_english'
-    print(f"\nShowing some questions out of a pool of {len(all_questions)} questions")
+    print(f"\nShowing questions for \"{BASE_NAMES[QUIZNO]['description']}\" out of a pool of {len(all_questions)} questions")
     random.seed()
     questions=list(all_questions.keys())
     random.shuffle(questions)

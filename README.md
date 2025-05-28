@@ -14,9 +14,11 @@ Highlights of this version:
 - You can concentrate on doing just one section
 
 ## Installation
-It's just a single python 3 program. Download that single file or clone the repo to get started. You also need the test questions.<br>
-The test file can be retrieved from <br>
+It's just a single python 3 program. Download that single file or clone the repo to get started.<br>
+The test questions will be downloaded the first time the program starts.<br>
+They are downloaded from <br>
 https://ised-isde.canada.ca/site/amateur-radio-operator-certificate-services/en/downloads
+If you want to you can manually download them first with
    ```
    wget https://apc-cap.ic.gc.ca/datafiles/amat_basic_quest.zip
    unzip -x amat_basic_quest.zip
@@ -27,8 +29,7 @@ Just run the program with `--help` to get a list of options.
 If you run it without any parameters it will just start showing questions.
 
 ## Roadmap
-- Download of questions need to be be part of the program by passing "--download" to it.
-- Add an option to easily switch between basic and advanced questions
+- Add an option to easily do a review of questions done
 
 ## License
 GPL3
