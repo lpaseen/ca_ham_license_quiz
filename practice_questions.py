@@ -120,7 +120,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         prog=f"{sys.argv[0]}",
         description='It will allow to practice for the canadian ham radio license test',
-        epilog='my last word'
+        epilog='73 de VA3TUE'
     )
     #parser.add_argument('-v', '--verbose',  action='store_true',help='be more versbose in outputs')  # on/off flag
     #parser.add_argument('-h','--help','-?',action='store_true',help='this help')
@@ -141,9 +141,10 @@ def parse_args():
     if exam.isnumeric():
         exam=int(exam)
     if exam not in BASE_NAMES:
-        print(f"unknown exam \"{exam}\", only know")
+        if exam != "?":
+            print(f"unknown exam \"{exam}\", only know")
         for e in BASE_NAMES:
-            print(f"{e}:  {BASE_NAMES[e]['description']}")
+            print(f"   {e}:  {BASE_NAMES[e]['description']}")
         sys.exit(8)
 
     if args.category:
@@ -311,7 +312,7 @@ def flash_sample(all_questions,prev_answers,prev_quiz,category):
 
     prev_quiz[NOW]={"questions":{}}
     # 'question_id', 'question_english', 'correct_answer_english', 'incorrect_answer_1_english', 'incorrect_answer_2_english', 'incorrect_answer_3_english'
-    print(f"\nShowing questions for \"{BASE_NAMES[QUIZNO]['description']}\" out of a pool of {len(all_questions)} questions")
+    print(f"\nShowing questions for \"{BASE_NAMES[QUIZNO]['description']}\" out of a pool of {len(all_questions)} questions. The test randomly picks {MAXQ} questions to answer")
     random.seed()
     questions=list(all_questions.keys())
     random.shuffle(questions)
